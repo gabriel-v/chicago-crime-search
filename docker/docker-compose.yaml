@@ -192,5 +192,5 @@ volumes:
 
 networks:
   chicago_crimes_search:
-    name: superset_default
-    external: true
+    # name: superset_default
+    # external: true
