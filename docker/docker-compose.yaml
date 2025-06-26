@@ -172,13 +172,13 @@ services:
     restart: unless-stopped
     networks:
       - chicago_crimes_search
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [ "gpu" ]
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [ "gpu" ]
 
 volumes:
   clickhouse_data3:
