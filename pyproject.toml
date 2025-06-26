@@ -1,0 +1,16 @@
+[project]
+name = "chicago-crime-search-engine"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "clickhouse-connect>=0.8.17",
+    "dash[diskcache]>=3.0.4",
+    "model2vec>=0.6.0",
+    "pandas>=2.3.0",
+    "plotly>=6.1.2",
+    "pymysql>=1.1.1",
+    "requests>=2.32.3",
+    "sqlalchemy>=2.0.41",
+]

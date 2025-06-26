@@ -1,0 +1,2 @@
+chicago crashes https://data.cityofchicago.org/api/views/85ca-t3if/rows.csv?accessType=DOWNLOAD
+chicago crimes  https://data.cityofchicago.org/api/views/ijzp-q8t2/rows.csv?accessType=DOWNLOAD

@@ -1,0 +1,196 @@
+services:
+
+  zookeeper:
+    image: zookeeper:3.9
+    container_name: zookeeper
+    hostname: zookeeper
+    memswap_limit: 6000M
+    mem_limit: 6000M
+    networks:
+      - chicago_crimes_search
+
+
+  manticore2:
+    image: manticoresearch/manticore:9.3.2
+    container_name: manticore2
+    ports:
+      - '19306:9306'
+      - '19308:9308'
+    volumes:
+      - manticore_data0:/var/lib/manticore
+    memswap_limit: 19000M
+    mem_limit: 19000M
+    ulimits:
+      nproc: 65535
+      nofile:
+         soft: 65535
+         hard: 65535
+      memlock:
+        soft: -1
+        hard: -1
+    restart: unless-stopped
+    networks:
+      - chicago_crimes_search
+    environment:
+      - TELEMETRY=0
+    user: 999:999
+
+  manticore:
+    image: manticoresearch/manticore:9.3.2
+    container_name: manticore
+    ports:
+      - '9306:9306'
+      - '9308:9308'
+    volumes:
+      - manticore_data3:/var/lib/manticore
+      - ./manticore.conf:/docker-mounted-manticore.conf
+      - ./manticore-update-config.sh:/manticore-update-config.sh
+    memswap_limit: 9000M
+    mem_limit: 9000M
+    ulimits:
+      nproc: 65535
+      nofile:
+         soft: 65535
+         hard: 65535
+      memlock:
+        soft: -1
+        hard: -1
+    restart: unless-stopped
+    networks:
+      - chicago_crimes_search
+    environment:
+      - TELEMETRY=0
+    user: 999:999
+    command: ["/bin/bash", "-c", "cp /docker-mounted-manticore.conf /etc/manticoresearch/manticore.conf && searchd --config /etc/manticoresearch/manticore.conf --nodetach"]
+
+  clickhouse:
+    container_name: clickhouse
+    image: clickhouse:25.5
+    cap_add:
+      - SYS_NICE
+      - NET_ADMIN
+      - IPC_LOCK
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    environment:
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
+      - CLICKHOUSE_DB=chicago_crimes_search
+      - CLICKHOUSE_USER=chicago_crimes_search
+      - CLICKHOUSE_PASSWORD=chicago_crimes_search
+    ports:
+      - '8123:8123'
+      - '9000:9000'
+    volumes:
+      - clickhouse_data3:/var/lib/clickhouse
+      - ./data:/var/lib/clickhouse/user_files
+      - ./clickhouse-server-config-override.xml:/etc/clickhouse-server/config.d/clickhouse-server-config-override.xml
+    healthcheck:
+      test: wget --no-verbose --tries=1 http://127.0.0.1:8123/ping || exit 1
+      interval: 13s
+      timeout: 15s
+      retries: 6
+    memswap_limit: 9000M
+    mem_limit: 9000M
+    restart: unless-stopped
+    depends_on:
+      - zookeeper
+    networks:
+      - chicago_crimes_search
+
+  clickhouse-monitoring:
+    image: ghcr.io/duyet/clickhouse-monitoring:2cc8058
+    environment:
+      - "CLICKHOUSE_HOST=http://clickhouse:8123"
+      - CLICKHOUSE_USER=chicago_crimes_search
+      - CLICKHOUSE_PASSWORD=chicago_crimes_search
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    ports:
+      - 3000:3000
+    volumes:
+      - /var/lib/clickhouse-monitoring
+    memswap_limit: 6000M
+    mem_limit: 6000M
+    restart: unless-stopped
+    networks:
+      - chicago_crimes_search
+
+  ch-ui:
+    image: ghcr.io/caioricciuti/ch-ui:sha-6227281d8c096e4259a1b96c92aa3f8d784a3c2b
+    ports:
+      - '5521:5521'
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    memswap_limit: 6000M
+    mem_limit: 6000M
+    restart: unless-stopped
+    environment:
+      VITE_CLICKHOUSE_URL: "http://localhost:8123"
+      VITE_CLICKHOUSE_USER: "chicago_crimes_search"
+      VITE_CLICKHOUSE_PASS: "chicago_crimes_search"
+    networks:
+      - chicago_crimes_search
+
+  dejavu:
+    image: appbaseio/dejavu
+    ports:
+      - '1358:1358'
+    memswap_limit: 5000M
+    mem_limit: 5000M
+    restart: unless-stopped
+    networks:
+      - chicago_crimes_search
+
+  nginx:
+    container_name: nginx
+    image: nginx:latest
+    ports:
+      - '29300:29300'
+      - '29308:29308'
+      - '28088:28088'
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    memswap_limit: 5000M
+    mem_limit: 5000M
+    restart: unless-stopped
+    networks:
+      - chicago_crimes_search
+
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    ports:
+      - '11434:11434'
+    volumes:
+      - ollama_data:/root/.ollama
+    memswap_limit: 9000M
+    mem_limit: 9000M
+    restart: unless-stopped
+    networks:
+      - chicago_crimes_search
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ "gpu" ]
+
+volumes:
+  clickhouse_data3:
+    driver: local
+  manticore_data0:
+    driver: local
+  manticore_data3:
+    driver: local
+  ollama_data:
+    driver: local
+
+networks:
+  chicago_crimes_search:
+    name: superset_default
+    external: true
