@@ -14,14 +14,14 @@ cd "$( dirname "${BASH_SOURCE[0]}" )"
     fi
 )
 
-(
-    unset COMPOSE_PROJECT_NAME
-    cd docker/lib/superset
-    export TAG=4.1.2
-     docker compose -f docker-compose-image-tag.yml up -d
-    #  for x in superset_app superset_worker superset_worker_beat; do docker exec -it $x pip install clickhouse-connect psycopg2-binary; done
-    #  docker compose restart
-)
+# (
+#     unset COMPOSE_PROJECT_NAME
+#     cd docker/lib/superset
+#     export TAG=4.1.2
+#      docker compose -f docker-compose-image-tag.yml up -d
+#     #  for x in superset_app superset_worker superset_worker_beat; do docker exec -it $x pip install clickhouse-connect psycopg2-binary; done
+#     #  docker compose restart
+# )
 
 (
     export COMPOSE_PROJECT_NAME=chicago_crimes_search
